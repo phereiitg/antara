@@ -3,11 +3,14 @@ import { copyFile, mkdir, readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { getAdapter, getChecklist, type DomainAdapter } from "../adapters";
 import {
+  ImageAnalysis,
   Transcript,
   VerificationResult,
   VisualCheck,
   type CaseRecord,
+  type Checklist,
   type EvidenceFrame,
+  type ImageEvidence,
   type ItemFinding,
   type ItemResult,
   type MediaRef,
@@ -22,6 +25,9 @@ import { buildExtractionPrompt, EXTRACTION_JSON_SCHEMA, parseExtraction } from "
 import { locateQuote, type QuoteMatch } from "./grounding";
 import { applyFallbackTasks } from "./guardrails";
 import { logEvent, transition } from "./state";
+import { assessImage, photoCheckFor } from "./fusion";
+import { buildImageAnalysisPrompt, IMAGE_ANALYSIS_JSON_SCHEMA, readImage } from "./image";
+import { summarizeEvidence } from "./report";
 import { buildVerificationPrompt, VERIFIABLE_FINDINGS, VERIFICATION_JSON_SCHEMA } from "./verify";
 import { buildVisionPrompt, VISION_JSON_SCHEMA } from "./vision";
 
@@ -33,7 +39,8 @@ import { buildVisionPrompt, VISION_JSON_SCHEMA } from "./vision";
 export interface PipelineDeps {
   llm: JsonLlm;
   stt?: SpeechToText;
-  agent?: { backend: AgentBackend; label: string; timeoutMs?: number };
+  // execution labels how the agent runs so a scripted run is never reported as live.
+  agent?: { backend: AgentBackend; label: string; timeoutMs?: number; execution?: "live" | "scripted" };
   store: FileCaseStore;
 }
 
@@ -44,6 +51,10 @@ export interface CaseInput {
   videos?: string[]; // e.g. several <= 3-minute glasses clips from one inspection
   audio?: string[];
   photos?: { path: string; itemIds?: number[] }[];
+  // Independent still photos (JPEG/PNG), analysed once per case and fused per item. Unlike
+  // video frames they need no transcript timings, so they work with Gnani transcripts.
+  images?: string[];
+  metadata?: Record<string, string>; // operator-entered case details (sample source, location...)
   transcript?: Transcript; // pre-made transcript (tests, demo); skips speech-to-text
 }
 
@@ -52,16 +63,45 @@ const errorText = (err: unknown) => (err instanceof Error ? err.message : String
 async function ingestMedia(record: CaseRecord, input: CaseInput, dir: string): Promise<void> {
   const mediaDir = join(dir, "media");
   await mkdir(mediaDir, { recursive: true });
-  const add = async (kind: MediaRef["kind"], path: string, itemIds?: number[]) => {
+  const add = async (kind: MediaRef["kind"], path: string, itemIds?: number[], role?: MediaRef["role"]) => {
     const id = `${kind}-${record.media.length + 1}`;
     const stored = join(mediaDir, `${id}${extname(path).toLowerCase()}`);
     await copyFile(path, stored); // keep an immutable copy with the case
-    record.media.push({ id, kind, path: stored, sha256: await sha256File(stored), mime: mimeFor(path), itemIds });
+    const ref: MediaRef = { id, kind, path: stored, sha256: await sha256File(stored), mime: mimeFor(path), itemIds };
+    if (role) ref.role = role;
+    record.media.push(ref);
   };
+  for (const p of input.images ?? []) await readImage(p); // validate type, size and signature before storing anything
   for (const p of input.videos ?? []) await add("video", p);
   for (const p of input.audio ?? []) await add("audio", p);
   for (const p of input.photos ?? []) await add("photo", p.path, p.itemIds);
+  for (const p of input.images ?? []) await add("photo", p, undefined, "evidence_photo");
   logEvent(record, "system", "MEDIA_INGESTED", record.media.map(({ id, kind, sha256 }) => ({ id, kind, sha256 })));
+}
+
+// Analyse each independent photo once. A failed or unusable analysis is recorded and flagged
+// for review; it never blocks the case and never stands in for missing voice evidence.
+async function analyseImages(record: CaseRecord, deps: PipelineDeps, adapter: DomainAdapter, checklist: Checklist) {
+  const photos = record.media.filter((m) => m.role === "evidence_photo");
+  const items = checklist.items.filter((i) => i.visualCheck);
+  const out: ImageEvidence[] = [];
+  for (const m of photos) {
+    try {
+      const { mimeType, data } = await readImage(m.path);
+      const raw = await deps.llm.generateJson({
+        step: "image_analysis", prompt: buildImageAnalysisPrompt(items, adapter.imageGuidance), schema: IMAGE_ANALYSIS_JSON_SCHEMA,
+        media: [{ mimeType, data }],
+      });
+      const ev = assessImage(m.id, m.sha256, deps.llm.model, ImageAnalysis.parse(raw));
+      out.push(ev);
+      logEvent(record, "system", "IMAGE_ANALYSED", { mediaId: m.id, quality: ev.analysis!.image_quality, reviewRequired: ev.reviewRequired });
+    } catch (err) {
+      out.push({ mediaId: m.id, sha256: m.sha256, status: "failed", error: errorText(err), reviewRequired: true,
+        reviewReason: "Photo could not be analysed automatically; review it manually." });
+      logEvent(record, "system", "IMAGE_ANALYSIS_FAILED", { mediaId: m.id, error: errorText(err) });
+    }
+  }
+  return out;
 }
 
 async function buildTranscript(record: CaseRecord, input: CaseInput, deps: PipelineDeps, dir: string): Promise<Transcript> {
@@ -155,8 +195,9 @@ export async function runCase(input: CaseInput, deps: PipelineDeps): Promise<Cas
     media: [], results: [], hasContradictions: false, proposals: [], reviewerTasks: [], clarifications: [],
     models: { extraction: deps.llm.model, verification: deps.llm.model, vision: deps.llm.model }, events: [],
   };
+  if (input.metadata && Object.keys(input.metadata).length) record.metadata = { ...input.metadata };
   const dir = deps.store.caseDir(record.id);
-  logEvent(record, "system", "CASE_CREATED", { domain: adapter.id, checklist: checklist.id });
+  logEvent(record, "system", "CASE_CREATED", { domain: adapter.id, checklist: checklist.id, metadata: record.metadata });
   transition(record, "PROCESSING", "system");
 
   try {
@@ -167,6 +208,12 @@ export async function runCase(input: CaseInput, deps: PipelineDeps): Promise<Cas
     transition(record, "ERROR", "system", { error: errorText(err) });
     await deps.store.save(record);
     throw err;
+  }
+
+  // Voice and photo are processed independently and only meet in the per-item decision below.
+  if (record.media.some((m) => m.role === "evidence_photo")) {
+    record.imageEvidence = await analyseImages(record, deps, adapter, checklist);
+    record.models.image_analysis = deps.llm.model;
   }
 
   const findings = await extract(record, deps, adapter);
@@ -187,10 +234,14 @@ export async function runCase(input: CaseInput, deps: PipelineDeps): Promise<Cas
         const raw = await deps.llm.generateJson({
           step: "vision", prompt: buildVisionPrompt(item, result.proposedStatus, result.quote), schema: VISION_JSON_SCHEMA, media,
         });
-        result = decideItem({ ...inputs, visual: VisualCheck.parse(raw) });
+        result = decideItem({ ...inputs, visual: { ...VisualCheck.parse(raw), source: "frames" } });
       } catch (err) {
         logEvent(record, "system", "VISION_CHECK_FAILED", { itemId: item.id, error: errorText(err) });
       }
+    } else if (record.imageEvidence?.length) {
+      // No timed frames for this item (e.g. untimed Gnani transcript): use the independent photo.
+      const visual = photoCheckFor(item, result.proposedStatus, record.imageEvidence);
+      if (visual) result = decideItem({ ...inputs, visual });
     }
     result.frames = frames;
     record.results.push(result);
@@ -201,15 +252,28 @@ export async function runCase(input: CaseInput, deps: PipelineDeps): Promise<Cas
   );
   logEvent(record, "system", "ITEMS_DECIDED", counts);
 
+  // Photos that could not be used are a review item in their own right.
+  const badPhotos = (record.imageEvidence ?? []).filter((e) => e.reviewRequired);
+  if (badPhotos.length) {
+    record.reviewerTasks.push({
+      id: randomUUID(), itemIds: checklist.items.filter((i) => i.visualCheck).map((i) => i.id), severity: "normal",
+      createdBy: "system", status: "OPEN",
+      reason: `Photo evidence needs human review: ${badPhotos.map((e) => `${e.mediaId}: ${e.reviewReason}`).join(" | ")}`,
+    });
+    logEvent(record, "system", "IMAGE_REVIEW_TASK", { mediaIds: badPhotos.map((e) => e.mediaId) });
+  }
+
   transition(record, "AGENT_RUNNING", "system");
   if (deps.agent) {
+    const execution = deps.agent.execution ?? (deps.agent.backend.kind === "provider" ? "live" : "scripted");
     record.models.agent = deps.agent.label;
-    record.agentRun = await runCaseAgent(record, adapter, checklist, { backend: deps.agent.backend, timeoutMs: deps.agent.timeoutMs });
-    logEvent(record, "agent", "AGENT_FINISHED", { status: record.agentRun.status, error: record.agentRun.error });
+    record.agentRun = { ...(await runCaseAgent(record, adapter, checklist, { backend: deps.agent.backend, timeoutMs: deps.agent.timeoutMs })), execution };
+    logEvent(record, "agent", "AGENT_FINISHED", { execution, status: record.agentRun.status, error: record.agentRun.error });
   } else {
-    record.agentRun = { mode: "skipped", status: "skipped", rejectedToolCalls: [] };
+    record.agentRun = { mode: "skipped", execution: "skipped", status: "skipped", rejectedToolCalls: [] };
   }
   applyFallbackTasks(record, adapter);
+  record.evidenceSummary = summarizeEvidence(record, adapter);
   transition(record, "PENDING_REVIEW", "system");
   await deps.store.save(record);
   return record;

@@ -19,6 +19,10 @@ export const ChecklistItem = z.object({
   unit: z.string().optional(),
   max: z.number().optional(),
   min: z.number().optional(),
+  // Something that must be visible in a still photo IF the item passes (a necessary, not
+  // sufficient, condition). Lets an independently uploaded photo corroborate or question the
+  // spoken finding. Items without it are never checked against photos.
+  visualCheck: z.string().min(1).optional(),
 });
 export type ChecklistItem = z.infer<typeof ChecklistItem>;
 
@@ -67,6 +71,8 @@ export const MediaRef = z.object({
   sha256: z.string(),
   mime: z.string(),
   itemIds: z.array(z.number()).optional(), // photos the user tagged to specific items
+  // "evidence_photo": independently uploaded still, analysed once and fused per item (image.ts)
+  role: z.literal("evidence_photo").optional(),
 });
 export type MediaRef = z.infer<typeof MediaRef>;
 
@@ -106,8 +112,62 @@ export const VisualCheck = z.object({
   item_visible: z.boolean(),
   assessment: VisualAssessment,
   observations: z.array(z.string()),
+  // provenance: frames grabbed from video at the quote's time, or an independently uploaded photo
+  source: z.enum(["frames", "photo"]).optional(),
 });
 export type VisualCheck = z.infer<typeof VisualCheck>;
+
+// ---------------------------------------------------------------------------
+// Independent still-photo analysis (model output) and its case-level record
+// ---------------------------------------------------------------------------
+export const ImageQuality = z.enum(["good", "limited", "unusable"]);
+export type ImageQuality = z.infer<typeof ImageQuality>;
+
+export const ImageItemObservation = z.object({
+  item_id: z.number().int(),
+  presence: z.enum(["present", "absent", "cannot_tell"]),
+  observation: z.string(),
+});
+export type ImageItemObservation = z.infer<typeof ImageItemObservation>;
+
+export const ImageAnalysis = z.object({
+  image_quality: ImageQuality,
+  quality_issues: z.array(z.string()),
+  summary: z.string(),
+  observations: z.array(z.string()),
+  visible_text: z.array(z.string()),
+  uncertainties: z.array(z.string()),
+  items: z.array(ImageItemObservation),
+});
+export type ImageAnalysis = z.infer<typeof ImageAnalysis>;
+
+export interface ImageEvidence {
+  mediaId: string;
+  sha256: string;
+  status: "analysed" | "failed";
+  model?: string;
+  analysis?: ImageAnalysis;
+  error?: string;
+  reviewRequired: boolean;
+  reviewReason?: string;
+}
+
+// Reviewer-facing digest of a case, with provenance kept separate. Derived from the item
+// results; it never changes a status.
+export interface EvidenceSummary {
+  disclaimer?: string;
+  voice?: {
+    provider: string;
+    timings: "provider" | "approximate" | "none";
+    statements: { itemId: number; quote: string; grounded: boolean }[]; // worker-reported
+  };
+  images: { mediaId: string; status: "analysed" | "failed"; quality?: ImageQuality; summary?: string; reviewReason?: string }[];
+  confirmed: number[]; // grounded voice finding, verifier agreed, no review flags
+  imageCorroborated: number[]; // photo shows what a PASS requires
+  missing: number[]; // not inspected, dropped by extraction, or missing value/date
+  conflicting: number[]; // contradictory statements, verifier or photo disagreement
+  needsHumanVerification: number[]; // NEEDS_REVIEW or covered by an open reviewer task
+}
 
 // ---------------------------------------------------------------------------
 // Final per-item result
@@ -215,6 +275,9 @@ export interface CaseEvent {
 
 export interface AgentRunRecord {
   mode: "cline" | "skipped";
+  // live = Cline agent on a real model provider; scripted = Cline agent loop driven by a
+  // hand-written model (demo/tests); skipped = no agent, guardrail tasks only.
+  execution?: "live" | "scripted" | "skipped";
   status: string;
   iterations?: number;
   error?: string;
@@ -232,8 +295,11 @@ export interface CaseRecord {
   createdAt: string;
   updatedAt: string;
   media: MediaRef[];
+  metadata?: Record<string, string>; // operator-entered case details (e.g. sample source, location)
   transcript?: Transcript;
+  imageEvidence?: ImageEvidence[]; // independent photo analysis, separate provenance from voice
   results: ItemResult[];
+  evidenceSummary?: EvidenceSummary;
   hasContradictions: boolean;
   proposals: ActionProposal[];
   reviewerTasks: ReviewerTask[];

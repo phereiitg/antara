@@ -4,7 +4,7 @@ export interface InlineMedia {
 }
 
 export interface JsonRequest {
-  step: "extraction" | "verification" | "vision" | "transcription";
+  step: "extraction" | "verification" | "vision" | "transcription" | "image_analysis";
   prompt: string;
   schema: object;
   media?: InlineMedia[];

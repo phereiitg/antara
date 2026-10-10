@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { listAdapters } from "./adapters";
 import { Transcript, VerificationResult, type CaseRecord, type ItemStatus } from "./contracts";
@@ -22,7 +23,10 @@ const USAGE = `ANTARA inspection pipeline
   antara smoke                                     check live Gemini + Cline agent with your .env keys
   antara run --domain <id> [--checklist <id>] [--language hi-IN]
              [--video clip.mp4 ...] [--audio a.wav ...] [--photo p.jpg[:1,2] ...]
+             [--image evidence.jpg ...] [--meta key=value ...]
              [--transcript t.json] [--no-agent]
+             --image: independent JPEG/PNG photo, analysed by Gemini and fused per item
+                      (works with untimed Gnani transcripts; --photo needs video timings)
   antara list
   antara show <caseId> [--json]
   antara approve <caseId> <proposalId> --reviewer <name> --reason <text>
@@ -37,7 +41,16 @@ const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…`
 function printCase(r: CaseRecord) {
   console.log(`\nCase ${r.id}  [${r.state}]`);
   console.log(`Domain ${r.domainId} v${r.adapterVersion} / ${r.checklistId}   language ${r.language}`);
+  if (r.evidenceSummary?.disclaimer) console.log(`NOTE: ${r.evidenceSummary.disclaimer}`);
+  if (r.metadata) console.log(`Metadata: ${Object.entries(r.metadata).map(([k, v]) => `${k}=${v}`).join(", ")}`);
   console.log(`Models: ${Object.entries(r.models).map(([k, v]) => `${k}=${v}`).join(", ")}`);
+  for (const e of r.imageEvidence ?? []) {
+    const a = e.analysis;
+    console.log(`Photo ${e.mediaId}: ${e.status}${a ? ` / quality ${a.image_quality}` : ""}${e.error ? ` / error: ${clip(e.error, 90)}` : ""}`);
+    if (a) console.log(`    ${clip(a.summary, 110)}`);
+    if (a?.uncertainties.length) console.log(`    uncertain: ${clip(a.uncertainties.join("; "), 100)}`);
+    if (e.reviewRequired) console.log(`    REVIEW: ${e.reviewReason}`);
+  }
   if (r.hasContradictions) console.log("Transcript contains contradictory statements (see CONFLICTING_STATEMENTS).");
   console.log("\n #  Status          Proposed        Reasons / quote");
   for (const it of r.results) {
@@ -47,11 +60,19 @@ function printCase(r: CaseRecord) {
     console.log(`${String(it.itemId).padStart(2)}  ${it.status.padEnd(15)} ${(it.proposedStatus ?? "-").padEnd(15)} ${reasons}`);
     console.log(`    ${clip(it.question, 70)}`);
     if (it.quote) console.log(`    "${clip(it.quote, 90)}"${extra ? `  (${extra})` : ""}`);
-    if (it.visual) console.log(`    vision: ${it.visual.assessment}; ${it.visual.observations.join("; ")}`);
+    if (it.visual) console.log(`    vision (${it.visual.source ?? "frames"}): ${it.visual.assessment}; ${clip(it.visual.observations.join("; "), 100)}`);
+  }
+  const s = r.evidenceSummary;
+  if (s) {
+    const list = (ids: number[]) => (ids.length ? ids.join(",") : "-");
+    console.log(`\nEvidence: voice=${s.voice ? `${s.voice.provider} (timings: ${s.voice.timings})` : "none"}, photos=${s.images.length}`);
+    console.log(`  confirmed ${list(s.confirmed)} | photo-corroborated ${list(s.imageCorroborated)} | missing ${list(s.missing)} | conflicting ${list(s.conflicting)} | needs human verification ${list(s.needsHumanVerification)}`);
   }
   const run = r.agentRun;
   if (run) {
-    console.log(`\nAgent: ${run.mode} / ${run.status}${run.iterations ? ` in ${run.iterations} iteration(s)` : ""}${run.error ? ` / error: ${run.error}` : ""}`);
+    const how = run.execution === "live" ? "LIVE Cline agent" : run.execution === "scripted" ? "SCRIPTED Cline agent (not a real model)" : "agent skipped";
+    console.log(`\nAgent: ${how} / ${run.status}${run.iterations ? ` in ${run.iterations} iteration(s)` : ""}${run.error ? ` / error: ${run.error}` : ""}`);
+    if (run.execution === "live" && run.status !== "completed") console.log("  Live agent did not complete: guardrail reviewer tasks below cover every open item.");
     for (const rej of run.rejectedToolCalls) console.log(`  rejected ${rej.tool}: ${rej.reason}`);
     if (run.summary) console.log(`  Summary: ${run.summary}`);
   }
@@ -83,10 +104,26 @@ function buildLiveDeps(noAgent: boolean): PipelineDeps {
   const providerId = env("CLINE_PROVIDER_ID") ?? "gemini";
   const modelId = env("CLINE_MODEL_ID") ?? llm.model;
   const agentKey = env("CLINE_PROVIDER_API_KEY") ?? (providerId === "gemini" ? apiKey : undefined);
+  if (!noAgent && !agentKey) {
+    // Never substitute a scripted model: run without the agent and let guardrails create tasks.
+    console.log(`Cline agent unavailable: no API key for provider "${providerId}" (set CLINE_PROVIDER_API_KEY). Running without the agent; guardrail reviewer tasks will cover open items.`);
+  }
   return {
     llm, stt, store,
-    agent: noAgent ? undefined : { backend: { kind: "provider", providerId, modelId, apiKey: agentKey }, label: `cline:${providerId}/${modelId}` },
+    agent: noAgent || !agentKey
+      ? undefined
+      : { backend: { kind: "provider", providerId, modelId, apiKey: agentKey }, label: `cline:${providerId}/${modelId}`, execution: "live" },
   };
+}
+
+// --meta key=value (repeatable): operator-entered case details, stored as given.
+function parseMeta(pairs: string[] | undefined): Record<string, string> | undefined {
+  if (!pairs?.length) return undefined;
+  return Object.fromEntries(pairs.map((p) => {
+    const i = p.indexOf("=");
+    if (i < 1) throw new Error(`--meta expects key=value, got "${p}"`);
+    return [p.slice(0, i).trim(), p.slice(i + 1).trim()];
+  }));
 }
 
 async function main() {
@@ -96,6 +133,7 @@ async function main() {
       domain: { type: "string" }, checklist: { type: "string" }, language: { type: "string" },
       video: { type: "string", multiple: true }, audio: { type: "string", multiple: true },
       photo: { type: "string", multiple: true }, transcript: { type: "string" },
+      image: { type: "string", multiple: true }, meta: { type: "string", multiple: true },
       "no-agent": { type: "boolean" }, json: { type: "boolean" },
       reviewer: { type: "string" }, reason: { type: "string" }, status: { type: "string" },
     },
@@ -177,9 +215,13 @@ async function main() {
           const m = p.match(/^(.*?)(?::([\d,]+))?$/)!;
           return { path: m[1], itemIds: m[2]?.split(",").map(Number) };
         }),
+        images: values.image,
+        metadata: parseMeta(values.meta),
         transcript: values.transcript ? Transcript.parse(JSON.parse(readFileSync(values.transcript, "utf8"))) : undefined,
       };
-      printCase(await runCase(input, buildLiveDeps(Boolean(values["no-agent"]))));
+      const record = await runCase(input, buildLiveDeps(Boolean(values["no-agent"])));
+      printCase(record);
+      console.log(`Saved: ${join(store.caseDir(record.id), "case.json")}   (npm run antara -- show ${short(record.id)} --json)`);
       return;
     }
 

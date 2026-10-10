@@ -20,6 +20,10 @@ export interface DomainAdapter {
   actions: Record<string, ActionTypeSpec>;
   // Domain-specific instructions appended to the agent's system prompt.
   agentGuidance: string;
+  // What to look for in independently uploaded photos (observable facts only).
+  imageGuidance?: string;
+  // Shown with every case summary (e.g. "not a laboratory result").
+  reportDisclaimer?: string;
 }
 
 export function getChecklist(adapter: DomainAdapter, checklistId?: string): Checklist {
