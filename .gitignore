@@ -1,4 +1,15 @@
 node_modules/
 .env
+.env.*
+!.env.example
 data/
 *.log
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+backend/samples/local/

@@ -1,0 +1,12 @@
+# ANTARA Python backend (Python 3.11+). Versions pinned to the set verified on 2026-10-10.
+fastapi==0.143.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.0
+pydantic-settings==2.15.0
+# Official Google Gen AI SDK (Gemini). Kept < 3 per Google's note on upcoming breaking changes.
+google-genai==2.29.0
+# HTTP client for the Gnani REST API (also used by google-genai and FastAPI's TestClient).
+httpx==0.28.1
+
+# Tests
+pytest==9.1.1

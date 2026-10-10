@@ -3,6 +3,13 @@
 This is the Meta-glasses fire-inspection pipeline (`Meta-Glass-Inspection-Fire-Safety-main.zip`, Python)
 rebuilt as an ANTARA evidence-to-action pipeline in TypeScript on the Cline SDK, following
 `ANTARA_Execution_Blueprint.md`.
+> **Python migration in progress.** The Python-first backend (FastAPI, Gemini and Gnani STT
+> clients) lives in [`backend/`](backend/README.md). The plan for moving this TypeScript engine
+> is in [`docs/MIGRATION_PLAN.md`](docs/MIGRATION_PLAN.md). Everything below describes the
+> TypeScript implementation, which is unchanged and still works. The Cline SDK agent stays in
+> TypeScript.
+
+
 
 ```
 glasses clips (<=3-5 min each) / phone audio + photos
