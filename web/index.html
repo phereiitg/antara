@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ANTARA · Adaptive Governance Intelligence</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles2.css" />
+</head>
+<body>
+  <aside>
+    <div class="brand">
+      <div class="logo">अ</div>
+      <div><h1>ANTARA</h1><small>One engine · many ministries</small></div>
+    </div>
+    <nav>
+      <a data-view="home" class="active">◈ Dashboard</a>
+      <a data-view="analysis">✚ New Analysis</a>
+      <a data-view="home">▤ Cases</a>
+      <a data-view="adapters">⬡ Ministry Adapters</a>
+      <a data-view="about">ⓘ About the Engine</a>
+    </nav>
+    <div class="side-foot">
+      <div><span class="dot"></span>Gnani · Speech</div>
+      <div><span class="dot"></span>Gemini · Vision</div>
+      <div><span class="dot"></span>Cline SDK · Agents</div>
+      <div style="margin-top:10px">Prototype build · Hackathon 2026</div>
+    </div>
+  </aside>
+
+  <main>
+    <section id="view-home">
+      <header class="top">
+        <div><h2>Select a Ministry</h2><p>The same ANTARA core engine adapts to each ministry through a specialised adapter.</p></div>
+        <span class="chip">● Engine online</span>
+      </header>
+      <div class="ministries">
+        <div class="glass ministry available" id="pick-jal">
+          <span class="badge ok">Available</span>
+          <div class="icon">💧</div>
+          <h3>Ministry of Jal Shakti</h3>
+          <p>Water-quality field evidence: voice report + test-kit photo → structured screening case for human review.</p>
+        </div>
+        <div class="glass ministry">
+          <span class="badge plan">Planned</span>
+          <div class="icon">🩺</div>
+          <h3>Ministry of Health &amp; Family Welfare</h3>
+          <p>Multilingual medication-instruction comprehension and teach-back verification.</p>
+        </div>
+        <div class="glass ministry">
+          <span class="badge plan">Demo adapter</span>
+          <div class="icon">🏫</div>
+          <h3>Ministry of Education</h3>
+          <p>School infrastructure inspection from photos and voice notes, with repair tracking.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-analysis" class="hidden">
+      <header class="top">
+        <div><h2>💧 Jal Shakti · Water Test Analysis</h2><p>Speak your field report, attach the test-kit photo, and let ANTARA build the case.</p></div>
+        <span class="chip">● Live session</span>
+      </header>
+      <div class="grid2">
+        <div class="glass card">
+          <h4>Field evidence</h4>
+          <div class="row">
+            <div><label>Sample source</label>
+              <select id="source"><option>Handpump</option><option>Tap</option><option>Open well</option></select></div>
+            <div><label>Language</label>
+              <select id="lang"><option value="hi-IN">Hindi (hi-IN)</option><option value="en-IN">English</option></select></div>
+          </div>
+          <label>Village / location</label>
+          <input type="text" id="location" value="Demo Village A" />
+          <div class="illustrative">Illustrative demo metadata</div>
+
+          <label>Voice report</label>
+          <div class="mic">
+            <button class="micbtn" id="mic" title="Record">🎙</button>
+            <div>
+              <div class="wave" id="wave"></div>
+              <div style="font-size:12px;color:var(--muted)" id="micHint">Tap to start recording</div>
+            </div>
+          </div>
+          <div class="attached hidden" id="audioAttached">✔ Voice recording attached</div>
+          <audio id="playback" controls class="hidden" style="width:100%;margin-top:8px"></audio>
+
+          <label>Test-kit photograph</label>
+          <div class="drop" id="drop">⬆ Upload photo (JPEG / PNG)</div>
+          <input type="file" id="file" accept="image/jpeg,image/png" class="hidden" />
+          <div class="preview hidden" id="preview">
+            <img id="previewImg" alt="Uploaded water test photo" />
+            <div class="cap" id="previewCap"></div>
+          </div>
+          <button class="btn wide" id="analyze" disabled>⚡ Analyze Sample</button>
+        </div>
+
+        <div>
+          <div class="glass card">
+            <h4>ANTARA processing pipeline</h4>
+            <div id="pipeline"></div>
+          </div>
+          <div class="glass card" style="margin-top:18px">
+            <h4>Your voice · Gnani STT</h4>
+            <div class="transcript-live hindi" id="transcript">Transcript will appear here after analysis…</div>
+          </div>
+        </div>
+      </div>
+      <div id="report" class="hidden"></div>
+    </section>
+
+    <section id="view-adapters" class="hidden"></section>
+    <section id="view-about" class="hidden"></section>
+  </main>
+  <script src="app.js"></script>
+  <script src="inputs.js"></script>
+  <script src="report.js"></script>
+  <script src="run.js"></script>
+</body>
+</html>

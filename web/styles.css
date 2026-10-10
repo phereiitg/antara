@@ -1,0 +1,57 @@
+:root {
+  --bg: #070b1a; --panel: rgba(22, 32, 68, 0.55); --line: rgba(120, 170, 255, 0.16);
+  --text: #e6ecff; --muted: #8a97c2; --cyan: #22d3ee; --violet: #a78bfa; --green: #34d399; --amber: #fbbf24; --red: #f87171;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif; color: var(--text);
+  background: radial-gradient(1200px 600px at 80% -10%, rgba(167, 139, 250, 0.18), transparent 60%),
+              radial-gradient(900px 500px at -10% 110%, rgba(34, 211, 238, 0.14), transparent 60%), var(--bg);
+  display: grid; grid-template-columns: 250px 1fr; min-height: 100vh;
+}
+.hindi { font-family: "Nirmala UI", "Noto Sans Devanagari", "Mangal", sans-serif; }
+
+aside { background: rgba(8, 12, 30, 0.8); border-right: 1px solid var(--line); padding: 26px 18px; display: flex; flex-direction: column; gap: 26px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.logo { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-weight: 800;
+  background: linear-gradient(135deg, var(--cyan), var(--violet)); color: #050816; box-shadow: 0 0 24px rgba(34, 211, 238, 0.45); }
+.brand h1 { margin: 0; font-size: 20px; letter-spacing: 3px; }
+.brand small { color: var(--muted); font-size: 11px; }
+nav a { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; color: var(--muted); text-decoration: none; font-size: 14px; cursor: pointer; }
+nav a.active, nav a:hover { color: var(--text); background: linear-gradient(90deg, rgba(34, 211, 238, 0.14), transparent); box-shadow: inset 2px 0 0 var(--cyan); }
+.side-foot { margin-top: auto; font-size: 11px; color: var(--muted); line-height: 1.8; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--green); box-shadow: 0 0 8px var(--green); margin-right: 6px; }
+
+main { padding: 26px 32px; overflow: auto; }
+header.top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+header.top h2 { margin: 0; font-size: 24px; }
+header.top p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.chip { font-size: 11px; padding: 5px 10px; border-radius: 999px; border: 1px solid rgba(34, 211, 238, 0.4); color: var(--cyan); }
+
+.glass { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; backdrop-filter: blur(14px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); }
+.ministries { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.ministry { padding: 22px; position: relative; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; }
+.ministry.available { cursor: pointer; border-color: rgba(34, 211, 238, 0.45); }
+.ministry.available:hover { transform: translateY(-3px); box-shadow: 0 16px 50px rgba(34, 211, 238, 0.2); }
+.ministry .icon { font-size: 30px; }
+.ministry h3 { margin: 12px 0 6px; font-size: 17px; }
+.ministry p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.badge { position: absolute; top: 16px; right: 16px; font-size: 11px; padding: 4px 9px; border-radius: 999px; }
+.badge.ok { background: rgba(52, 211, 153, 0.15); color: var(--green); }
+.badge.plan { background: rgba(138, 151, 194, 0.15); color: var(--muted); }
+
+.grid2 { display: grid; grid-template-columns: 420px 1fr; gap: 22px; align-items: start; }
+.card { padding: 22px; }
+.card h4 { margin: 0 0 14px; font-size: 13px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--cyan); }
+label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 6px; }
+select, input[type=text] { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(5, 9, 25, 0.7); color: var(--text); font-size: 14px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.illustrative { font-size: 10px; color: var(--amber); margin-top: 6px; }
+
+.btn { border: 0; border-radius: 12px; padding: 12px 18px; font-weight: 600; font-size: 14px; cursor: pointer; color: #050816;
+  background: linear-gradient(135deg, var(--cyan), var(--violet)); box-shadow: 0 6px 24px rgba(34, 211, 238, 0.3); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+.btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); box-shadow: none; }
+.btn.wide { width: 100%; padding: 15px; font-size: 15px; margin-top: 18px; }
+.btn.ok { background: var(--green); } .btn.bad { background: var(--red); } .btn.warn { background: var(--amber); }

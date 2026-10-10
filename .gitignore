@@ -13,3 +13,7 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 backend/samples/local/
+
+# Local demo photo (user-supplied; upload it in the UI instead of committing it)
+web/assets/water-test.jpeg
+*.jpeg
