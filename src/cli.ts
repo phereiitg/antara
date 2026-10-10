@@ -78,7 +78,8 @@ function buildLiveDeps(noAgent: boolean): PipelineDeps {
   const apiKey = env("GEMINI_API_KEY");
   if (!apiKey) throw new Error("GEMINI_API_KEY is not set (copy .env.example to .env). Try `antara demo` for an offline run.");
   const llm = new GeminiClient(apiKey, env("GEMINI_MODEL") ?? "gemini-3.8-flash");
-  const stt = env("STT_PROVIDER") === "gnani" ? new GnaniStt() : new GeminiStt(llm);
+  const stt =
+    env("STT_PROVIDER") === "gnani" ? new GnaniStt(env("PYTHON_SERVICE_URL") ?? "http://127.0.0.1:8000") : new GeminiStt(llm);
   const providerId = env("CLINE_PROVIDER_ID") ?? "gemini";
   const modelId = env("CLINE_MODEL_ID") ?? llm.model;
   const agentKey = env("CLINE_PROVIDER_API_KEY") ?? (providerId === "gemini" ? apiKey : undefined);

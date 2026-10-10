@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     vision_provider: Literal["gemini"] = "gemini"
 
     cline_bridge_url: str = "http://127.0.0.1:4317"
+    python_service_url: str = "http://127.0.0.1:8000"  # read by the TypeScript engine; listed for check_env
 
     antara_data_dir: str = "./data"
     database_url: str = "sqlite:///./data/antara.db"

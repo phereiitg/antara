@@ -90,7 +90,10 @@ export function decideItem({ item, finding, match, verification, visual }: Decis
   if (finding.conflicting_statements) reasons.push("CONFLICTING_STATEMENTS");
 
   if (match?.grounded) {
-    result.quoteWindow = { clipId: match.clipId, start: match.start!, end: match.end! };
+    // Only a timed transcript yields a window; an untimed quote is grounded by text alone.
+    if (match.start !== undefined && match.end !== undefined) {
+      result.quoteWindow = { clipId: match.clipId, start: match.start, end: match.end };
+    }
   } else {
     reasons.push("QUOTE_NOT_IN_TRANSCRIPT");
   }

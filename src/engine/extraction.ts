@@ -49,7 +49,10 @@ export function buildExtractionPrompt(checklist: Checklist, transcript: Transcri
     .join("\n");
 
   const lines = transcript.segments
-    .map((s) => `[${s.clipId ? `${s.clipId} ` : ""}${s.start.toFixed(1)}s] ${s.text.trim()}`)
+    .map((s) => {
+      const label = [s.clipId, s.start !== undefined ? `${s.start.toFixed(1)}s` : undefined].filter(Boolean).join(" ");
+      return label ? `[${label}] ${s.text.trim()}` : s.text.trim();
+    })
     .join("\n");
 
   return `You are a strict inspection transcript analysis engine.

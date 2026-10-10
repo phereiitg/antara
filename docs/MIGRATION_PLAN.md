@@ -1,9 +1,50 @@
 # ANTARA: Python migration plan
 
-Status: **Phase 1 complete and verified** (2026-10-10; see "Phase 1 final verification" in
-section 3). The Python backend foundation and provider integrations live in `backend/`, and
-Gemini text, JSON, vision and Gnani STT were tested live. The TypeScript implementation in `src/`
-is unchanged and still passes its 38 tests and the type-check. Phase 2 has not started.
+## 0. Current status (2026-10-10): hackathon architecture, migration frozen
+
+**The full Python migration is paused until after the hackathon.** Nothing has been discarded.
+
+| Layer | Runs in | Status |
+|---|---|---|
+| Engine: extraction, grounding, verification, vision, decisions, state, review, guardrails | **TypeScript** (`src/`) | Primary engine for the demo |
+| Agent orchestration | **TypeScript**, Cline SDK (`src/cline-runtime/`) | Unchanged |
+| Gemini (extraction, verification, vision) | TypeScript `GeminiClient` | Unchanged |
+| Gnani speech-to-text | **Python** FastAPI `POST /internal/stt/transcribe`, called by the TS `GnaniStt` adapter | **Milestone 1 done, verified live** |
+| Python data contracts (Phase 2A step 1) | `backend/antara_core/schemas/` | Done (commit `857064e`); frozen |
+| Python grounding / decide / state / review / guardrails | not started | Frozen |
+
+```
+TS engine (npx tsx src/cli.ts run ... with STT_PROVIDER=gnani)
+  -> GnaniStt (src/integrations/stt.ts)  POST {PYTHON_SERVICE_URL}/internal/stt/transcribe (multipart: audio, language)
+  -> FastAPI (backend/antara_core/stt_service.py, loopback-only, holds GNANI_API_KEY)
+  -> GnaniSTTClient -> https://api.vachana.ai/stt/v3
+  <- camelCase Transcript JSON, validated by Zod in GnaniStt
+  <- engine Transcript { segments: [{ text, clipId }] }   (no start/end: Gnani gives none)
+```
+
+**Untimed transcripts.** `Segment.start`/`end` in `src/contracts.ts` are now optional (was
+required). This is the one engine-contract change. Gnani segments carry no timings, and none are
+invented. Effects:
+- grounding still works by text (negation checks unchanged); the match has no time window;
+- `decideItem` sets no `quoteWindow`, so no video evidence frames for those items;
+- the extraction prompt labels untimed lines `[clipId]` instead of `[clipId 0.0s]`.
+Timed transcripts (Gemini STT, fixtures) behave exactly as before; all 38 original TS tests pass.
+
+**Milestone 1 verification (live, 2026-10-10):** TS `GnaniStt` -> Python service -> Gnani API
+returned the Hindi test clip word for word, provider `gnani:gnani-prisma-v2.5`, and the engine's
+grounding located a quote in it (no time window). Live failure paths also verified: >60 s WAV
+(`unsupported_audio`, rejected before calling Gnani), `.mp4` upload (`unsupported_audio`),
+silence (`empty_transcript`), unsupported language (`unsupported_language`), missing file field
+(`missing_audio`, HTTP 400), service stopped (`service_unavailable`), and a real Gnani 401 with
+a deliberately invalid key (`provider_auth_failed`).
+
+**Known limits (open):** recordings over 60 s are rejected (no chunking yet); Gnani transcripts
+produce no evidence frames; the Jal Shakti checklist limits are still demo fixtures.
+
+---
+
+Earlier status: **Phase 1 complete and verified** (2026-10-10; see "Phase 1 final verification"
+in section 3). Phase 2A step 1 (data contracts) was completed afterwards (commit `857064e`).
 
 ## 1. Repository audit (before any change)
 

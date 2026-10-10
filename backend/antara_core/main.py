@@ -6,12 +6,14 @@ Run from the ``backend`` directory:
 
 from __future__ import annotations
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from antara_core import __version__
 from antara_core.config import Settings, configure_logging, get_settings
 from antara_core.integrations.gnani_client import SUPPORTED_LANGUAGES
 from antara_core.schemas import HealthResponse, ProviderStatus, ProvidersHealthResponse
+from antara_core.stt_service import router as stt_router
 
 SERVICE_NAME = "antara-core"
 
@@ -68,6 +70,14 @@ def create_app() -> FastAPI:
             note="Configuration check only; run the smoke-test scripts to verify live connectivity.",
         )
 
+    @application.exception_handler(HTTPException)
+    async def structured_errors(_: Request, exc: HTTPException) -> JSONResponse:
+        # Internal endpoints raise {"error", "message"} details; return them as the body itself.
+        if isinstance(exc.detail, dict) and {"error", "message"} <= exc.detail.keys():
+            return JSONResponse(status_code=exc.status_code, content=exc.detail)
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+    application.include_router(stt_router)
     return application
 
 

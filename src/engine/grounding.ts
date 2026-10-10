@@ -80,6 +80,11 @@ function groupByClip(segments: Segment[]): Segment[][] {
   return [...groups.values()];
 }
 
+// Window length in seconds; untimed windows compare as 0, so the first exact match is kept.
+function duration(span: { start?: number; end?: number }): number {
+  return span.start !== undefined && span.end !== undefined ? span.end - span.start : 0;
+}
+
 export function locateQuote(quote: string, segments: Segment[]): QuoteMatch {
   const q = tokens(quote);
   const none: QuoteMatch = { grounded: false, approximate: false, score: 0 };
@@ -92,11 +97,12 @@ export function locateQuote(quote: string, segments: Segment[]): QuoteMatch {
       for (let len = 1; len <= MAX_WINDOW_SEGMENTS && i + len <= clip.length; len++) {
         const window = clip.slice(i, i + len);
         const w = tokens(window.map((s) => s.text).join(" "));
+        // Untimed segments (Gnani REST) leave start/end undefined: grounded by text, no window.
         const span = { clipId: window[0].clipId, start: window[0].start, end: window[len - 1].end };
 
         if (` ${w.join(" ")} `.includes(` ${qNorm} `)) {
           // exact match: the smallest window wins, so stop growing this one
-          if (!best.grounded || best.approximate || (best.end! - best.start!) > span.end - span.start) {
+          if (!best.grounded || best.approximate || duration(best) > duration(span)) {
             best = { grounded: true, approximate: false, score: 1, ...span };
           }
           break;

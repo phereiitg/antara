@@ -33,9 +33,12 @@ export type Checklist = z.infer<typeof Checklist>;
 // ---------------------------------------------------------------------------
 // Transcript
 // ---------------------------------------------------------------------------
+// start/end are provider-supplied seconds. They are absent for providers that return no timing
+// (Gnani REST): never fill them with guesses. Untimed segments still ground by text; they just
+// produce no quoteWindow and no evidence frames.
 export const Segment = z.object({
-  start: z.number().nonnegative(),
-  end: z.number().nonnegative(),
+  start: z.number().nonnegative().optional(),
+  end: z.number().nonnegative().optional(),
   text: z.string(),
   clipId: z.string().optional(), // which media clip the times are relative to
 });
