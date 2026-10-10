@@ -1,0 +1,25 @@
+{
+  "_note": "SCRIPTED responses written by hand for the offline demo and tests. Not real model output. Item 5's quote is deliberately paraphrased to show the grounding check catching it.",
+  "extraction": {
+    "items": [
+      { "item_id": 1, "finding": "meets", "conflicting_statements": false, "quote": "Okay, extinguishers are present, one every fifty feet or so along the corridor.", "date": "", "numeric_value": "", "note": "Inspector confirms extinguishers every ~50 ft." },
+      { "item_id": 2, "finding": "meets", "conflicting_statements": false, "quote": "The annual inspection tag says March 2026, so that's up to date.", "date": "March 2026", "numeric_value": "", "note": "Tag dated March 2026." },
+      { "item_id": 3, "finding": "not_mentioned", "conflicting_statements": false, "quote": "", "date": "", "numeric_value": "", "note": "Mounting height and visibility were not discussed." },
+      { "item_id": 4, "finding": "does_not_meet", "conflicting_statements": true, "quote": "Actually wait, on this second one the tamper seal is broken.", "date": "", "numeric_value": "", "note": "First said the seal looked fine, then reported a broken seal on the second unit." },
+      { "item_id": 5, "finding": "meets", "conflicting_statements": false, "quote": "The pressure gauge is in the green range", "date": "", "numeric_value": "", "note": "Gauge in the green." },
+      { "item_id": 6, "finding": "does_not_meet", "conflicting_statements": false, "quote": "नेमप्लेट वाले निर्देश पढ़ने लायक नहीं हैं, बहुत फीके हो गए हैं।", "date": "", "numeric_value": "", "note": "Inspector says (in Hindi) the nameplate instructions are faded and not readable." },
+      { "item_id": 7, "finding": "does_not_meet", "conflicting_statements": false, "quote": "There's some corrosion on the bottom of the cylinder near the nozzle.", "date": "", "numeric_value": "", "note": "Corrosion reported near the nozzle." },
+      { "item_id": 8, "finding": "unclear", "conflicting_statements": false, "quote": "Last service, I think it was sometime last year, not sure honestly.", "date": "", "numeric_value": "", "note": "Inspector is unsure when the last service was." }
+    ]
+  },
+  "verification": {
+    "items": [
+      { "item_id": 1, "supported": true, "note": "Explicitly stated." },
+      { "item_id": 2, "supported": true, "note": "Date and status stated." },
+      { "item_id": 4, "supported": true, "note": "Broken seal reported on the second unit." },
+      { "item_id": 5, "supported": true, "note": "Gauge in the green stated." },
+      { "item_id": 6, "supported": true, "note": "Nameplate not legible." },
+      { "item_id": 7, "supported": true, "note": "Corrosion reported." }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "language": "en-IN",
+  "provider": "fixture (synthetic narration written for the demo)",
+  "timestampsApproximate": false,
+  "segments": [
+    { "clipId": "video-1", "start": 0.0, "end": 4.2, "text": "Starting the extinguisher check on the ground floor corridor." },
+    { "clipId": "video-1", "start": 4.2, "end": 9.8, "text": "Okay, extinguishers are present, one every fifty feet or so along the corridor." },
+    { "clipId": "video-1", "start": 9.8, "end": 15.1, "text": "The annual inspection tag says March 2026, so that's up to date." },
+    { "clipId": "video-1", "start": 15.1, "end": 20.5, "text": "Pin is in place and the tamper seal looks fine." },
+    { "clipId": "video-1", "start": 20.5, "end": 23.0, "text": "Gauge is in the green." },
+    { "clipId": "video-2", "start": 0.0, "end": 6.4, "text": "Actually wait, on this second one the tamper seal is broken." },
+    { "clipId": "video-2", "start": 6.4, "end": 12.9, "text": "नेमप्लेट वाले निर्देश पढ़ने लायक नहीं हैं, बहुत फीके हो गए हैं।" },
+    { "clipId": "video-2", "start": 12.9, "end": 19.3, "text": "There's some corrosion on the bottom of the cylinder near the nozzle." },
+    { "clipId": "video-2", "start": 19.3, "end": 25.0, "text": "Last service, I think it was sometime last year, not sure honestly." }
+  ]
+}
