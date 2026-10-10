@@ -1,7 +1,8 @@
 """Shared Pydantic data contracts for the Python backend.
 
-Phase 1 holds only the provider-facing contracts. The engine contracts from
-``src/contracts.ts`` (checklists, findings, item results, cases) move here in Phase 2.
+Engine contracts are ported from ``src/contracts.ts`` (Phase 2A) and live in submodules:
+``transcript``, ``checklist``, ``findings``, ``case``, ``adapter``. They are re-exported here.
+Provider/health response models from Phase 1 are defined below.
 """
 
 from __future__ import annotations
@@ -10,26 +11,51 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from antara_core.schemas.adapter import ActionTypeSpec, DomainAdapter, get_checklist
+from antara_core.schemas.case import (
+    ActionProposal,
+    AgentRunRecord,
+    CaseEvent,
+    CaseRecord,
+    CaseState,
+    ClarificationRequest,
+    EvidenceFrame,
+    ItemResult,
+    ItemStatus,
+    MediaKind,
+    MediaRef,
+    Priority,
+    ProposalReview,
+    ProposalStatus,
+    QuoteWindow,
+    RejectedToolCall,
+    ReviewerTask,
+    ReviewReason,
+    TaskResolution,
+    case_to_json,
+)
+from antara_core.schemas.checklist import Checklist, ChecklistItem, ResponseType
+from antara_core.schemas.findings import (
+    ExtractionResult,
+    Finding,
+    ItemFinding,
+    VerificationItem,
+    VerificationResult,
+    VisualAssessment,
+    VisualCheck,
+)
+from antara_core.schemas.transcript import Segment, Transcript, TranscriptSegment, transcript_text
 
-class TranscriptSegment(BaseModel):
-    """A piece of transcript. ``start``/``end`` are seconds and are only set when the provider
-    actually returned timings; they are never estimated."""
-
-    text: str
-    start: float | None = None
-    end: float | None = None
-
-
-class Transcript(BaseModel):
-    """Provider-independent speech-to-text result."""
-
-    provider: str
-    language: str
-    text: str
-    segments: list[TranscriptSegment] = Field(default_factory=list)
-    timestamps_available: bool = False
-    request_id: str | None = None
-    model: str | None = None
+__all__ = [
+    "ActionProposal", "ActionTypeSpec", "AgentRunRecord", "CaseEvent", "CaseRecord", "CaseState",
+    "Checklist", "ChecklistItem", "ClarificationRequest", "DomainAdapter", "EvidenceFrame",
+    "ExtractionResult", "Finding", "HealthResponse", "ItemFinding", "ItemResult", "ItemStatus",
+    "MediaKind", "MediaRef", "Priority", "ProposalReview", "ProposalStatus", "ProviderStatus",
+    "ProvidersHealthResponse", "QuoteWindow", "RejectedToolCall", "ResponseType", "ReviewReason",
+    "ReviewerTask", "Segment", "TaskResolution", "Transcript", "TranscriptSegment",
+    "VerificationItem", "VerificationResult", "VisionObservation", "VisualAssessment",
+    "VisualCheck", "case_to_json", "get_checklist", "transcript_text",
+]
 
 
 class VisionObservation(BaseModel):

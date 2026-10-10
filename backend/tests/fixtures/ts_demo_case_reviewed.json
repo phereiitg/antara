@@ -1,0 +1,402 @@
+{
+  "id": "b2dc6aa8-01cb-472b-8e4a-f3105c94f27e",
+  "domainId": "fire_safety",
+  "adapterVersion": "1.0.0",
+  "checklistId": "fire_extinguisher",
+  "state": "SUBMITTED_TO_MOCK_SYSTEM",
+  "language": "hi-IN",
+  "createdAt": "2026-10-10T13:45:50.720Z",
+  "updatedAt": "2026-10-10T13:46:05.350Z",
+  "media": [],
+  "results": [
+    {
+      "itemId": 1,
+      "question": "Are fire extinguishers present? (50-75 ft travel distance for ABC extinguishers)",
+      "status": "PASS",
+      "reasons": [],
+      "quote": "Okay, extinguishers are present, one every fifty feet or so along the corridor.",
+      "frames": [],
+      "note": "Inspector confirms extinguishers every ~50 ft.",
+      "quoteWindow": {
+        "clipId": "video-1",
+        "start": 4.2,
+        "end": 9.8
+      },
+      "proposedStatus": "PASS"
+    },
+    {
+      "itemId": 2,
+      "question": "Is the annual inspection of fire extinguishers up-to-date?",
+      "status": "PASS",
+      "reasons": [],
+      "quote": "The annual inspection tag says March 2026, so that's up to date.",
+      "frames": [],
+      "note": "Tag dated March 2026.",
+      "date": "March 2026",
+      "quoteWindow": {
+        "clipId": "video-1",
+        "start": 9.8,
+        "end": 15.1
+      },
+      "proposedStatus": "PASS"
+    },
+    {
+      "itemId": 3,
+      "question": "Are fire extinguishers installed in accessible and visible areas? (3.5-5 ft height, min 4\" from floor)",
+      "status": "NOT_INSPECTED",
+      "reasons": [],
+      "quote": "",
+      "frames": [],
+      "note": "Mounting height and visibility were not discussed."
+    },
+    {
+      "itemId": 4,
+      "question": "Is the locking pin intact and tamper seal unbroken?",
+      "status": "NOT_INSPECTED",
+      "reasons": [
+        "CONFLICTING_STATEMENTS"
+      ],
+      "quote": "Actually wait, on this second one the tamper seal is broken.",
+      "frames": [],
+      "note": "First said the seal looked fine, then reported a broken seal on the second unit.",
+      "quoteWindow": {
+        "clipId": "video-2",
+        "start": 0,
+        "end": 6.4
+      },
+      "proposedStatus": "FAIL"
+    },
+    {
+      "itemId": 5,
+      "question": "Is the pressure gauge in the operable range?",
+      "status": "NOT_INSPECTED",
+      "reasons": [
+        "QUOTE_NOT_IN_TRANSCRIPT"
+      ],
+      "quote": "The pressure gauge is in the green range",
+      "frames": [],
+      "note": "Gauge in the green.",
+      "proposedStatus": "PASS"
+    },
+    {
+      "itemId": 6,
+      "question": "Are operating instructions on the nameplate legible and facing outward?",
+      "status": "FAIL",
+      "reasons": [],
+      "quote": "नेमप्लेट वाले निर्देश पढ़ने लायक नहीं हैं, बहुत फीके हो गए हैं।",
+      "frames": [],
+      "note": "Inspector says (in Hindi) the nameplate instructions are faded and not readable.",
+      "quoteWindow": {
+        "clipId": "video-2",
+        "start": 6.4,
+        "end": 12.9
+      },
+      "proposedStatus": "FAIL"
+    },
+    {
+      "itemId": 7,
+      "question": "No visible physical damage, corrosion, leakage, or clogged nozzle?",
+      "status": "FAIL",
+      "reasons": [],
+      "quote": "There's some corrosion on the bottom of the cylinder near the nozzle.",
+      "frames": [],
+      "note": "Corrosion reported near the nozzle.",
+      "quoteWindow": {
+        "clipId": "video-2",
+        "start": 12.9,
+        "end": 19.3
+      },
+      "proposedStatus": "FAIL"
+    },
+    {
+      "itemId": 8,
+      "question": "Is the last professional service date within 12 months?",
+      "status": "NOT_INSPECTED",
+      "reasons": [
+        "UNCLEAR_ANSWER"
+      ],
+      "quote": "Last service, I think it was sometime last year, not sure honestly.",
+      "frames": [],
+      "note": "Inspector is unsure when the last service was.",
+      "quoteWindow": {
+        "clipId": "video-2",
+        "start": 19.3,
+        "end": 25
+      }
+    }
+  ],
+  "hasContradictions": true,
+  "proposals": [
+    {
+      "id": "63393373-eea3-459a-8882-785e0b4d0ee0",
+      "actionType": "rectification_notice_draft",
+      "itemIds": [
+        6,
+        7
+      ],
+      "rationale": "Inspector reported failures: #6: \"नेमप्लेट वाले निर्देश पढ़ने लायक नहीं हैं, बहुत फीके हो गए हैं।\"; #7: \"There's some corrosion on the bottom of the cylinder near the nozzle.\"",
+      "priority": "high",
+      "proposedBy": "agent",
+      "status": "APPROVED",
+      "review": {
+        "reviewer": "Fire Officer",
+        "reason": "Corrosion and faded nameplate confirmed",
+        "at": "2026-10-10T13:45:57.993Z"
+      },
+      "mockReference": "MOCK-RECTIFICATION_NOTICE_DRAFT-63393373"
+    }
+  ],
+  "reviewerTasks": [
+    {
+      "id": "b6754909-6055-44c4-9cbb-437bec3b4d72",
+      "itemIds": [
+        4,
+        5,
+        8
+      ],
+      "reason": "Automatic checks flagged these items: CONFLICTING_STATEMENTS, QUOTE_NOT_IN_TRANSCRIPT, UNCLEAR_ANSWER",
+      "severity": "normal",
+      "createdBy": "agent",
+      "status": "RESOLVED",
+      "resolution": {
+        "reviewer": "Fire Officer",
+        "finalStatus": "NOT_INSPECTED",
+        "reason": "Re-inspect",
+        "at": "2026-10-10T13:46:05.349Z"
+      }
+    }
+  ],
+  "clarifications": [
+    {
+      "id": "2dddacb2-43eb-4b29-8147-013d913e240e",
+      "itemIds": [
+        3
+      ],
+      "question": "कृपया इन बिंदुओं की जाँच करके दोबारा रिकॉर्ड करें: 3",
+      "language": "hi-IN",
+      "createdBy": "agent"
+    }
+  ],
+  "models": {
+    "extraction": "scripted (no model)",
+    "verification": "scripted (no model)",
+    "vision": "scripted (no model)",
+    "stt": "fixture (synthetic narration written for the demo)",
+    "agent": "cline:scripted-model"
+  },
+  "events": [
+    {
+      "at": "2026-10-10T13:45:50.724Z",
+      "actor": "system",
+      "type": "CASE_CREATED",
+      "detail": {
+        "domain": "fire_safety",
+        "checklist": "fire_extinguisher"
+      }
+    },
+    {
+      "at": "2026-10-10T13:45:50.724Z",
+      "actor": "system",
+      "type": "STATE_PROCESSING",
+      "detail": {
+        "from": "DRAFT"
+      }
+    },
+    {
+      "at": "2026-10-10T13:45:50.728Z",
+      "actor": "system",
+      "type": "MEDIA_INGESTED",
+      "detail": []
+    },
+    {
+      "at": "2026-10-10T13:45:50.758Z",
+      "actor": "system",
+      "type": "ITEMS_DECIDED",
+      "detail": {
+        "PASS": 2,
+        "NOT_INSPECTED": 1,
+        "NEEDS_REVIEW": 3,
+        "FAIL": 2
+      }
+    },
+    {
+      "at": "2026-10-10T13:45:50.758Z",
+      "actor": "system",
+      "type": "STATE_AGENT_RUNNING",
+      "detail": {
+        "from": "PROCESSING"
+      }
+    },
+    {
+      "at": "2026-10-10T13:45:50.773Z",
+      "actor": "agent",
+      "type": "ACTION_PROPOSED",
+      "detail": {
+        "id": "63393373-eea3-459a-8882-785e0b4d0ee0",
+        "actionType": "rectification_notice_draft",
+        "itemIds": [
+          6,
+          7
+        ]
+      }
+    },
+    {
+      "at": "2026-10-10T13:45:50.773Z",
+      "actor": "agent",
+      "type": "REVIEWER_TASK_CREATED",
+      "detail": {
+        "id": "b6754909-6055-44c4-9cbb-437bec3b4d72",
+        "itemIds": [
+          4,
+          5,
+          8
+        ]
+      }
+    },
+    {
+      "at": "2026-10-10T13:45:50.773Z",
+      "actor": "agent",
+      "type": "CLARIFICATION_DRAFTED",
+      "detail": {
+        "id": "2dddacb2-43eb-4b29-8147-013d913e240e",
+        "itemIds": [
+          3
+        ]
+      }
+    },
+    {
+      "at": "2026-10-10T13:45:50.774Z",
+      "actor": "agent",
+      "type": "AGENT_FINISHED",
+      "detail": {
+        "status": "completed"
+      }
+    },
+    {
+      "at": "2026-10-10T13:45:50.775Z",
+      "actor": "system",
+      "type": "STATE_PENDING_REVIEW",
+      "detail": {
+        "from": "AGENT_RUNNING"
+      }
+    },
+    {
+      "at": "2026-10-10T13:45:57.995Z",
+      "actor": "reviewer:Fire Officer",
+      "type": "PROPOSAL_APPROVED",
+      "detail": {
+        "id": "63393373-eea3-459a-8882-785e0b4d0ee0",
+        "actionType": "rectification_notice_draft",
+        "reason": "Corrosion and faded nameplate confirmed"
+      }
+    },
+    {
+      "at": "2026-10-10T13:46:05.350Z",
+      "actor": "reviewer:Fire Officer",
+      "type": "TASK_RESOLVED",
+      "detail": {
+        "id": "b6754909-6055-44c4-9cbb-437bec3b4d72",
+        "itemIds": [
+          4,
+          5,
+          8
+        ],
+        "finalStatus": "NOT_INSPECTED",
+        "reason": "Re-inspect"
+      }
+    },
+    {
+      "at": "2026-10-10T13:46:05.350Z",
+      "actor": "system",
+      "type": "STATE_REVIEWED",
+      "detail": {
+        "from": "PENDING_REVIEW"
+      }
+    },
+    {
+      "at": "2026-10-10T13:46:05.350Z",
+      "actor": "mock-connector",
+      "type": "MOCK_SUBMITTED",
+      "detail": {
+        "id": "63393373-eea3-459a-8882-785e0b4d0ee0",
+        "reference": "MOCK-RECTIFICATION_NOTICE_DRAFT-63393373"
+      }
+    },
+    {
+      "at": "2026-10-10T13:46:05.350Z",
+      "actor": "system",
+      "type": "STATE_SUBMITTED_TO_MOCK_SYSTEM",
+      "detail": {
+        "from": "REVIEWED"
+      }
+    }
+  ],
+  "transcript": {
+    "language": "en-IN",
+    "provider": "fixture (synthetic narration written for the demo)",
+    "segments": [
+      {
+        "start": 0,
+        "end": 4.2,
+        "text": "Starting the extinguisher check on the ground floor corridor.",
+        "clipId": "video-1"
+      },
+      {
+        "start": 4.2,
+        "end": 9.8,
+        "text": "Okay, extinguishers are present, one every fifty feet or so along the corridor.",
+        "clipId": "video-1"
+      },
+      {
+        "start": 9.8,
+        "end": 15.1,
+        "text": "The annual inspection tag says March 2026, so that's up to date.",
+        "clipId": "video-1"
+      },
+      {
+        "start": 15.1,
+        "end": 20.5,
+        "text": "Pin is in place and the tamper seal looks fine.",
+        "clipId": "video-1"
+      },
+      {
+        "start": 20.5,
+        "end": 23,
+        "text": "Gauge is in the green.",
+        "clipId": "video-1"
+      },
+      {
+        "start": 0,
+        "end": 6.4,
+        "text": "Actually wait, on this second one the tamper seal is broken.",
+        "clipId": "video-2"
+      },
+      {
+        "start": 6.4,
+        "end": 12.9,
+        "text": "नेमप्लेट वाले निर्देश पढ़ने लायक नहीं हैं, बहुत फीके हो गए हैं।",
+        "clipId": "video-2"
+      },
+      {
+        "start": 12.9,
+        "end": 19.3,
+        "text": "There's some corrosion on the bottom of the cylinder near the nozzle.",
+        "clipId": "video-2"
+      },
+      {
+        "start": 19.3,
+        "end": 25,
+        "text": "Last service, I think it was sometime last year, not sure honestly.",
+        "clipId": "video-2"
+      }
+    ],
+    "timestampsApproximate": false
+  },
+  "agentRun": {
+    "mode": "cline",
+    "status": "completed",
+    "iterations": 2,
+    "summary": "Scripted summary: follow-up prepared per the rules; see proposals and reviewer tasks.",
+    "rejectedToolCalls": []
+  }
+}

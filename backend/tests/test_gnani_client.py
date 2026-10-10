@@ -76,11 +76,14 @@ def test_normalized_response_has_no_fabricated_timestamps(wav: Path):
             "transcript": f"  {HINDI} ", "model": "gnani-prisma-v2.5"}
     client, _, _ = make([ok(body)])
     result = client.transcribe(wav, "hi-IN")
+    # Phase 2A merged Transcript with src/contracts.ts: clip_id and timestamps_approximate were
+    # added (both empty/false here). All Phase 1 fields and values are unchanged.
     assert result.model_dump() == {
         "provider": "gnani",
         "language": "hi-IN",
         "text": HINDI,
-        "segments": [{"text": HINDI, "start": None, "end": None}],
+        "segments": [{"text": HINDI, "start": None, "end": None, "clip_id": None}],
+        "timestamps_approximate": False,
         "timestamps_available": False,
         "request_id": "req_abc123",
         "model": "gnani-prisma-v2.5",
