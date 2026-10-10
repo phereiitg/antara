@@ -1,100 +1,104 @@
-# ANTARA: glasses inspection pipeline, adapted
+# ANTARA
 
-This is the Meta-glasses fire-inspection pipeline (`Meta-Glass-Inspection-Fire-Safety-main.zip`, Python)
-rebuilt as an ANTARA evidence-to-action pipeline in TypeScript on the Cline SDK, following
-`ANTARA_Execution_Blueprint.md`.
-> **Python migration in progress.** The Python-first backend (FastAPI, Gemini and Gnani STT
-> clients) lives in [`backend/`](backend/README.md). The plan for moving this TypeScript engine
-> is in [`docs/MIGRATION_PLAN.md`](docs/MIGRATION_PLAN.md). Everything below describes the
-> TypeScript implementation, which is unchanged and still works. The Cline SDK agent stays in
-> TypeScript.
+**Adaptive multi-agent AI for Indian government field workflows.**
+One reusable intelligence engine, specialised per ministry through adapters (like antibodies:
+one body, many specialised receptors).
 
-
+Primary use case: **Ministry of Jal Shakti**. A field worker speaks a report in Hindi and attaches
+a photo of the water-test kit. ANTARA turns both into a structured screening case that a named
+human reviewer approves or rejects.
 
 ```
-glasses clips (<=3-5 min each) / phone audio + photos
-  -> ffmpeg: 16 kHz mono WAV per clip
-  -> speech-to-text (Gemini; Gnani stub)            timestamped segments per clip
-  -> checklist extraction (Gemini, JSON schema)      one finding + verbatim quote per item
-  -> quote grounding (deterministic)                 is the quote really in the transcript? where?
-  -> verification (Gemini, one batch call)           second opinion on each finding
-  -> evidence frames at the quote's timestamps       replaces CLIP search over every frame
-  -> vision cross-check (Gemini)                     disagreement -> review, never an override
-  -> per-item decision (deterministic)               PASS/FAIL/NOT_APPLICABLE/NOT_INSPECTED/RECORDED/NEEDS_REVIEW
-  -> Cline agent (4 allowlisted tools)               drafts PENDING proposals, reviewer tasks, clarifications
-  -> guardrail fallback (deterministic)              anything the agent missed gets a reviewer task
-  -> human review -> mock connector                  approve / reject / resolve, with reviewer + reason
+voice (Hindi) ──► Gnani STT ──────────┐
+                                      ├─► extraction ─► grounding ─► verification ─► decisions
+photo (JPEG/PNG) ──► Gemini Vision ───┘        (Gemini)  (negation-aware)            (deterministic)
+                                                                                      │
+                     human review ◄── guardrails ◄── Cline SDK agent (PENDING proposals only)
 ```
 
-## Run it
+## Repository layout
 
-```bash
-npm install
-npm test                      # 38 tests, offline (includes real ffmpeg + real Cline agent loop)
-npm run antara -- demo        # offline end-to-end demo, no API keys
-npm run antara -- domains
-
-cp .env.example .env          # add GEMINI_API_KEY
-npm run antara -- smoke       # checks live Gemini JSON output and the Cline agent on a real model
-npm run antara -- run --domain fire_safety --checklist fire_extinguisher --language hi-IN \
-    --video clip1.mp4 --video clip2.mp4
-npm run antara -- show <caseId>
-npm run antara -- approve <caseId> <proposalId> --reviewer "Fire Officer" --reason "..."
-npm run antara -- resolve <caseId> <taskId> --status FAIL --reviewer "Fire Officer" --reason "..."
-```
-
-The demo uses a synthetic transcript and **hand-written model responses** (`fixtures/demo/`). The
-pipeline, checks, Cline agent loop, tools and review flow are real code; the model answers are not.
-
-## Domains
-
-| Domain | Checklists | Agent actions | Wearable video frames |
-|---|---|---|---|
-| `fire_safety` | 4 NFPA checklists ported from the zip | `rectification_notice_draft`, `reinspection_visit` | allowed |
-| `education` | school facilities (demo) | `repair_inspection` | **off**: minors in view (DPDP Act) |
-| `jal_shakti` | FTK sample capture (demo, fixture limit) | `lab_referral`, `retest_request` | allowed (kit, not people) |
-
-Checklist items carry an explicit `passCondition`, so "Is the FDC blocked? Yes" is judged against
-"The FDC is NOT blocked" instead of the model guessing the question's polarity.
-
-## What changed from the Python pipeline
-
-| pipeline.py | Here |
+| Path | What it is |
 |---|---|
-| Ambiguous answers (`null`) saved as N/A | `UNCLEAR_ANSWER` -> NEEDS_REVIEW |
-| Items never mentioned saved as N/A | NOT_INSPECTED |
-| Items the model dropped saved as N/A | `EXTRACTION_MISSING_ITEM` -> NEEDS_REVIEW |
-| Contradictions printed, then ignored | per-item `CONFLICTING_STATEMENTS` -> NEEDS_REVIEW |
-| LLM self-reported confidence >= 0.85 | checkable signals: quote grounding, verifier, vision, missing date/value |
-| Word-overlap quote matching (accepts a dropped "not") | exact/fuzzy match that must agree on negations, incl. Hindi |
-| "Distance" item never treated as numeric | numeric item, value RECORDED (or PASS/FAIL against a limit) |
-| Unguarded `json.loads` crashes the run | JSON-schema output + Zod; extraction failure degrades to manual review |
-| Whisper medium + CLIP ViT-L, GPU recommended | Gemini STT/vision over HTTP; CPU only |
-| All frames in RAM (~20 GB for 30 min 1080p) | 3 frames per item, grabbed at the quote's timestamps |
-| Writes final PASS/FAIL to Postgres | agent proposals stay PENDING until a named reviewer decides |
-| `db_setup.sql` fails on re-run after dropping results | file store per case (Postgres later) |
+| `src/` | TypeScript engine: contracts, pipeline, grounding, decisions, review, guardrails, Cline agent, CLI |
+| `src/adapters/` | Ministry adapters: `jal_shakti`, `education`, `fire_safety` (demo checklists) |
+| `backend/` | Python FastAPI service: Gnani speech-to-text, Gemini client, Pydantic contracts |
+| `web/` | Hackathon web prototype (static, scripted demo flow) |
+| `tests/`, `backend/tests/` | Offline test suites (vitest, pytest) |
+| `docs/MIGRATION_PLAN.md` | Architecture notes, verification log and roadmap |
 
-## Cline SDK notes (checked against the installed `@cline/sdk@0.0.92`)
+## Quick start: web prototype
 
-- `Agent` comes from `@cline/agents`, which has no built-in shell/file/browser tools; the agent only sees the 4 case tools.
-- A tool with `autoApprove: false` and no `requestToolApproval` callback is **refused** (test:
-  `tests/agent.test.ts`). The blueprint's `toolPolicies: { propose_action: { autoApprove: false } }`
-  would therefore block every proposal. Here the tools only write PENDING records, so they are
-  auto-approved at the SDK level and the human gate is the review step.
-- Every rule (allowed action types, which item statuses an action may cite) is enforced inside the
-  tools; the guardrail creates reviewer tasks for anything the agent leaves uncovered.
+Requires Node 22+.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start-demo.ps1         # opens http://127.0.0.1:5173
+powershell -ExecutionPolicy Bypass -File .\start-demo.ps1 -Stop
+```
+
+Flow: select **Ministry of Jal Shakti** → record your voice → upload the test-kit photo →
+**Analyze Sample** → watch the pipeline → read the case report → hear the Hindi reply → approve or reject.
+
+> **The web prototype is a scripted UI demo.** Real: your microphone recording, the photo you
+> upload, and the spoken reply (generated with Gnani TTS into `web/assets/antara-reply.wav` by
+> `backend/scripts/make_reply_audio.py`). Scripted: the displayed transcript, image observations,
+> pipeline timing, case contents and review outcome. The live engine runs through the CLI below.
+
+## Live engine (CLI)
+
+```powershell
+npm install
+copy .env.example .env      # add GEMINI_API_KEY and GNANI_API_KEY (never commit .env)
+
+# Python Gnani service (separate terminal)
+cd backend
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m uvicorn antara_core.main:app --port 8000
+cd ..
+
+# Voice + photo Jal Shakti case
+npm run antara -- run --domain jal_shakti --checklist field_sample_capture --language hi-IN `
+  --audio report.wav --image water-test.jpeg --meta source=Handpump --meta "location=Demo Village A"
+
+npm run antara -- show <caseId>
+npm run antara -- approve <caseId> <proposalId> --reviewer "Block Water Officer" --reason "..."
+npm run antara -- demo      # offline end-to-end demo, no API keys
+```
+
+## Safety principles
+
+- A photo never establishes water safety, pH or chlorine concentration. The engine screens model
+  output for such claims and flags them for review.
+- Vision can corroborate a spoken finding or force review; it never overrides it.
+- No invented timestamps: Gnani returns untimed transcripts, so quotes are grounded by text only.
+- Agents create **PENDING** proposals only. Every action needs a named reviewer and a reason.
+  There are no real government-system submissions (mock connector).
+- Jal Shakti checklists are **synthetic demo** configuration, not official standards.
+
+## Tests
+
+```powershell
+npm test                    # TypeScript (vitest)
+npx tsc --noEmit            # type-check
+cd backend; .\.venv\Scripts\python.exe -m pytest    # Python
+```
+
+All suites run offline with mocked providers; no paid API calls.
+
+## Tech stack
+
+TypeScript (Node 22, Zod, `@cline/sdk`) · Python 3.11 (FastAPI, Pydantic, `google-genai`, httpx) ·
+Gemini (`gemini-3.8-flash`) · Gnani Speech APIs (STT `stt/v3`, TTS `timbre-v2.5`) · ffmpeg.
 
 ## Status
 
-Tested offline: all deterministic logic, ffmpeg audio extraction and frame grabbing on synthetic
-clips, the real Cline agent loop with a scripted model, review flow, Gemini client request/retry
-handling (mocked HTTP).
-
-**Not yet tested live** (no API key was available): Gemini extraction quality on real Hindi/Hinglish
-narration, Gemini STT timestamp accuracy, the Cline agent on a real Gemini model, and whether the
-configured model ID accepts `responseJsonSchema`. Run `npm run antara -- smoke` first.
-
-Not built: web UI (CLI only), auth/multi-tenancy, Postgres, Gnani client (account-specific
-endpoint), Files API upload for clips over ~18 MB, sending clarifications back to the field
-worker, face redaction.
-# antara
+| Component | State |
+|---|---|
+| Gnani STT via Python service, called from TypeScript | Working, verified live |
+| Gnani TTS (Hindi reply audio) | Working, verified live |
+| Voice + independent photo pipeline (engine) | Implemented, tested offline with mocks |
+| Gemini live calls | Verified earlier; currently timing out from the dev machine |
+| Live Cline agent | Wired; runs with configured provider credentials, otherwise deterministic fallback |
+| Web UI connected to live engine | Not yet (prototype is scripted) |
+| Health ministry adapter | Planned |
